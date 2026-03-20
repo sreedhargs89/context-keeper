@@ -2,6 +2,12 @@
 
 All notable changes to ck — Context Keeper will be documented here.
 
+## [1.1.0] — 2026-03-20
+
+### Added
+- `/ck:save` now generates a one-liner session summary — auto-generated with option to confirm or edit before saving
+- `/ck:status` now shows a `LAST SESSION` column so you instantly see what happened last session
+
 ## [1.0.0] — 2026-03-20
 
 ### Added

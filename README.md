@@ -49,7 +49,7 @@ That's it. One command. No dependencies beyond Node.js (already required by Clau
 | Command | What It Does |
 |---------|-------------|
 | `/ck:init` | Register current project — guided 4-question setup |
-| `/ck:save` | Snapshot this session: goals, decisions, next steps, blockers |
+| `/ck:save` | Snapshot this session: goals, decisions, next steps, blockers, one-liner summary |
 | `/ck:resume` | Brief me on this project — what was I doing? |
 | `/ck:resume <name>` | Load **any** project's context from anywhere |
 | `/ck:status` | Portfolio view of all projects with staleness indicators |
@@ -84,12 +84,12 @@ Context auto-loads via the SessionStart hook. Or run:
 See all projects at a glance from any terminal:
 
 ```
-  PROJECT           LAST SEEN      STATUS    CURRENT GOAL
-  ──────────────────────────────────────────────────────────────
-  productivity   →  2 hours ago    ●         Build auth flow  ← you are here
-  saas-starter   →  3 days ago     ◐         Payment integration
-  blog-redesign  →  8 days ago     ○         Redesign homepage
-  api-client     →  Today          ●         Fix rate limits
+  PROJECT           LAST SEEN      STATUS    CURRENT GOAL               LAST SESSION
+  ─────────────────────────────────────────────────────────────────────────────────────────────
+  productivity   →  2 hours ago    ●         Build auth flow             Added Stripe webhooks  ← you are here
+  saas-starter   →  3 days ago     ◐         Payment integration         Fixed checkout bug
+  blog-redesign  →  8 days ago     ○         Redesign homepage           —
+  api-client     →  Today          ●         Fix rate limits             Debugged timeout issue
 ```
 
 Then jump in:

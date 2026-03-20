@@ -75,10 +75,11 @@ Expand `~` to the actual home directory using `$HOME` or the Bash tool (`echo $H
    - Any decisions made and **why**
    - Concrete next steps (ordered, specific)
    - Any blockers encountered
-7. Present a **draft update** to the user showing what will be changed. Ask: "Save this? (yes / edit)"
-8. If yes: update CONTEXT.md with the new information (merge, don't erase history — append new decisions to the decisions table, update next steps, update "Where I Left Off").
-9. Update `meta.json`: set `lastUpdated` to today, increment `sessionCount`.
-10. Confirm: "✓ Saved. Context will auto-load next session. See you next time."
+7. Generate a one-liner session summary (max 10 words, e.g. "Set up ck, removed Caps Lock automations"). Show it to the user: "Session summary: '<one-liner>' — keep this or edit it?" Wait for response. If the user skips or says nothing within the same message, use the auto-generated one-liner.
+8. Present a **draft update** to the user showing what will be changed. Ask: "Save this? (yes / edit)"
+9. If yes: update CONTEXT.md with the new information (merge, don't erase history — append new decisions to the decisions table, update next steps, update "Where I Left Off").
+10. Update `meta.json`: set `lastUpdated` to today, increment `sessionCount`, set `lastSessionSummary` to the confirmed one-liner.
+11. Confirm: "✓ Saved. Context will auto-load next session. See you next time."
 
 ---
 
@@ -121,22 +122,21 @@ Expand `~` to the actual home directory using `$HOME` or the Bash tool (`echo $H
 1. Read `~/.claude/ck/projects.json`.
 2. If empty or missing → "No projects registered yet. Run `/ck:init` in a project folder to get started."
 3. For each project:
-   - Read its `meta.json` to get `lastUpdated`, `sessionCount`
+   - Read its `meta.json` to get `lastUpdated`, `sessionCount`, `lastSessionSummary`
    - Read first line of its CONTEXT.md's `## Current Goal` section
    - Compute staleness: < 1 day = Active (●), 1–5 days = Warm (◐), > 5 days = Stale (○)
    - Mark current directory with `← you are here`
-4. Present as a table:
+4. Present as a table with a `LAST SESSION` column showing `lastSessionSummary` (or `—` if not set):
 
 ```
-  PROJECT           LAST SEEN      STATUS    CURRENT GOAL
-  ──────────────────────────────────────────────────────────────
-  productivity   →  2 hours ago    ●         Build auth flow  ← you are here
-  saas-starter   →  3 days ago     ◐         Payment integration
-  blog-redesign  →  8 days ago     ○         Redesign homepage
-  api-client     →  Today          ●         Fix rate limits
+  PROJECT           LAST SEEN      STATUS    CURRENT GOAL               LAST SESSION
+  ──────────────────────────────────────────────────────────────────────────────────────────
+  productivity   →  Today          ●         Build dev tools            Set up ck, cleaned Caps Lock  ← you are here
+  saas-starter   →  3 days ago     ◐         Payment integration        Integrated Stripe webhooks
+  blog-redesign  →  8 days ago     ○         Redesign homepage          —
 ```
 
-5. After the table: "Jump into any context with `/ck:resume <name>`"
+5. After the table: "Jump into any context with `ck:resume <name>`"
 
 ---
 
