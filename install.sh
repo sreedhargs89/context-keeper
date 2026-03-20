@@ -46,8 +46,8 @@ HOOK_REGISTER_SCRIPT=$(mktemp /tmp/ck-install-XXXXXX.mjs)
 cat > "$HOOK_REGISTER_SCRIPT" << NODESCRIPT
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 
-const settingsPath = process.argv[1];
-const hookCmd = process.argv[2];
+const settingsPath = process.argv[2];
+const hookCmd = process.argv[3];
 
 let settings = {};
 if (existsSync(settingsPath)) {
