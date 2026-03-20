@@ -28,35 +28,51 @@ Expand `~` to the actual home directory using `$HOME` or the Bash tool (`echo $H
 1. Get the current directory: run `pwd` via Bash.
 2. Read `~/.claude/ck/projects.json`. If it doesn't exist, treat it as `{}`.
 3. Check if this path is already registered. If yes, ask: "This project is already registered. Update it? (yes/no)"
-4. Ask the user these 4 questions one at a time (wait for each answer):
-   - "What is this project?" (1–2 sentences)
-   - "What's the tech stack?" (freeform, e.g. Next.js, Postgres, Clerk)
-   - "What's the current goal?" (what are you trying to accomplish right now)
-   - "Any do-nots or constraints?" (things to avoid, decisions already made)
-5. Derive a `contextDir` from the last path segment, lowercased, spaces→dashes (e.g. `my-saas-app`). If that name already exists in projects.json for a **different** path, append `-2`, `-3`, etc.
-6. Create directory: `~/.claude/ck/contexts/<contextDir>/`
-7. Write `CONTEXT.md` using the template below, filled with the user's answers.
-8. Write `meta.json`:
-   ```json
-   {
-     "path": "<absolute-path>",
-     "name": "<contextDir>",
-     "lastUpdated": "<today's date YYYY-MM-DD>",
-     "sessionCount": 1
-   }
+4. **Auto-detect project info** by reading any of these files that exist: `README.md`, `CLAUDE.md`, `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, `.git/config`. From these, infer:
+   - What the project is (1–2 sentences)
+   - Tech stack
+   - Current goal (from CLAUDE.md "Current Goal" section if present, else infer from README)
+   - Do-nots or constraints (from CLAUDE.md "Do Not Do" section if present)
+   - Repository URL (from `.git/config` remote origin URL if present)
+5. Present a **pre-filled draft** to the user all at once:
    ```
-9. Update `projects.json`:
-   ```json
-   {
-     "<absolute-path>": {
-       "name": "<contextDir>",
-       "contextDir": "<contextDir>",
-       "lastUpdated": "<today's date>"
-     }
-   }
+   Here's what I found — confirm or edit anything:
+
+   Project:    <inferred description>
+   Stack:      <inferred stack>
+   Goal:       <inferred goal>
+   Do-nots:    <inferred constraints, or "None">
+   Repository: <inferred repo URL, or "none">
+
+   Looks good? Or tell me what to change.
    ```
-10. Confirm: "✓ Project '<name>' registered. Use `/ck:save` to save session state and `/ck:resume` to reload it next time."
-11. Offer: "Want me to also create a CLAUDE.md in this project root with key conventions?" (optional, proceed only if yes)
+6. Wait for the user's response. Apply any corrections they specify. If they say "looks good" or similar, proceed.
+7. Derive a `contextDir` from the last path segment, lowercased, spaces→dashes (e.g. `my-saas-app`). If that name already exists in projects.json for a **different** path, append `-2`, `-3`, etc.
+8. Create directory: `~/.claude/ck/contexts/<contextDir>/`
+9. Write `CONTEXT.md` using the template below, filled with the confirmed answers.
+10. Write `meta.json`:
+    ```json
+    {
+      "path": "<absolute-path>",
+      "name": "<contextDir>",
+      "repo": "<confirmed repo URL, omit this field entirely if none>",
+      "lastUpdated": "<today's date YYYY-MM-DD>",
+      "sessionCount": 1
+    }
+    ```
+    (Omit the `"repo"` key entirely if the user has none.)
+11. Update `projects.json`:
+    ```json
+    {
+      "<absolute-path>": {
+        "name": "<contextDir>",
+        "contextDir": "<contextDir>",
+        "lastUpdated": "<today's date>"
+      }
+    }
+    ```
+12. Confirm: "✓ Project '<name>' registered. Use `/ck:save` to save session state and `/ck:resume` to reload it next time."
+13. Offer: "Want me to also create a CLAUDE.md in this project root with key conventions?" (optional, proceed only if yes)
 
 ---
 
@@ -95,22 +111,74 @@ Expand `~` to the actual home directory using `$HOME` or the Bash tool (`echo $H
 3. Read `CONTEXT.md` from the resolved `contextDir`.
 4. Read `meta.json` for metadata.
 5. Compute staleness: compare `lastUpdated` to today. Show "X days ago" or "Today".
-6. Present the briefing in this format:
+6. Present the briefing in this expanded format:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  RESUMING: <project-name>                               │
 │  Last session: <X days ago / Today>  |  Sessions: <N>  │
 ├─────────────────────────────────────────────────────────┤
-│  GOAL     → <current goal>                              │
-│  LEFT OFF → <where you left off>                        │
-│  NEXT     → <#1 next step>                              │
-│  BLOCKERS → <blockers or "None">                        │
+│  WHAT IT IS  → <## What This Is content, 1–2 sentences> │
+│  STACK       → <## Tech Stack content>                  │
+│  PATH        → <path from meta.json>                    │
+│  REPO        → <repo from meta.json>                    │
+│  GOAL        → <## Current Goal content>                │
+├─────────────────────────────────────────────────────────┤
+│  WHERE I LEFT OFF                                       │
+│    • <bullet 1>                                         │
+│    • <bullet 2>                                         │
+│    • <all bullets from ## Where I Left Off>             │
+├─────────────────────────────────────────────────────────┤
+│  NEXT STEPS                                             │
+│    1. <step 1>                                          │
+│    2. <step 2>                                          │
+│    ... <all steps from ## Next Steps>                   │
+│  BLOCKERS → <all blockers from ## Blockers>             │
 └─────────────────────────────────────────────────────────┘
 ```
 
+Rendering rules:
+- Show ALL bullets from "Where I Left Off" — do not truncate
+- Show ALL steps from "Next Steps" — do not truncate
+- If any section is empty or missing, omit that section's block
+- Always show PATH (it always exists)
+- Only show REPO line if `meta.json` has a `repo` field (omit the line entirely if missing or empty)
+
 7. Ask: "Continue from here? Or has anything changed?"
 8. If the user says something has changed, update CONTEXT.md inline immediately.
+
+---
+
+## `/ck:info` — Current Session Context Snapshot
+
+**Purpose**: Quick read-only view of the current project context mid-session. No questions, no prompts — just display.
+
+**Steps**:
+1. Run `pwd` to get current directory.
+2. Look up the current path in `projects.json`. If not found → "Not registered. Run `/ck:init` first." and stop.
+3. Read `CONTEXT.md` and `meta.json` from the resolved `contextDir`.
+4. Display a compact info block:
+
+```
+  ck: <project-name>
+  ────────────────────────────────────────────────
+  PATH   <path>
+  REPO   <repo>              ← omit if not set
+  GOAL   <## Current Goal, first line>
+  ────────────────────────────────────────────────
+  WHERE I LEFT OFF
+    • <all bullets from ## Where I Left Off>
+  NEXT STEPS
+    1. <all steps from ## Next Steps>
+  BLOCKERS
+    • <all blockers, or "None">
+```
+
+Rendering rules:
+- Omit REPO line if not set
+- Show ALL bullets and steps — do not truncate
+- If "Where I Left Off" is the default placeholder text, show it as-is
+- No follow-up question — just display and stop
 
 ---
 
@@ -122,18 +190,21 @@ Expand `~` to the actual home directory using `$HOME` or the Bash tool (`echo $H
 1. Read `~/.claude/ck/projects.json`.
 2. If empty or missing → "No projects registered yet. Run `/ck:init` in a project folder to get started."
 3. For each project:
-   - Read its `meta.json` to get `lastUpdated`, `sessionCount`, `lastSessionSummary`
+   - Read its `meta.json` to get `lastUpdated`, `sessionCount`, `lastSessionSummary`, `path`, `repo`
    - Read first line of its CONTEXT.md's `## Current Goal` section
    - Compute staleness: < 1 day = Active (●), 1–5 days = Warm (◐), > 5 days = Stale (○)
    - Mark current directory with `← you are here`
-4. Present as a table with a `LAST SESSION` column showing `lastSessionSummary` (or `—` if not set):
+4. Present as a table with a `LAST SESSION` column showing `lastSessionSummary` (or `—` if not set). Below each project row, show the folder path (always) and repo (only if set):
 
 ```
   PROJECT           LAST SEEN      STATUS    CURRENT GOAL               LAST SESSION
   ──────────────────────────────────────────────────────────────────────────────────────────
   productivity   →  Today          ●         Build dev tools            Set up ck, cleaned Caps Lock  ← you are here
+                    /Users/sree/2026/productivity
   saas-starter   →  3 days ago     ◐         Payment integration        Integrated Stripe webhooks
+                    /Users/sree/dev/saas-starter  ·  github.com/sree/saas-starter
   blog-redesign  →  8 days ago     ○         Redesign homepage          —
+                    /Users/sree/dev/blog-redesign
 ```
 
 5. After the table: "Jump into any context with `ck:resume <name>`"
@@ -159,16 +230,17 @@ When creating a new CONTEXT.md, use this structure exactly:
 ```markdown
 # Project: <name>
 > Path: <absolute-path>
+> Repo: <repo URL>         ← omit this line entirely if no repo
 > Last Session: <YYYY-MM-DD> | Sessions: 1
 
 ## What This Is
-<user's answer to "what is this project">
+<confirmed description>
 
 ## Tech Stack
-<user's answer to "what's the tech stack">
+<confirmed stack>
 
 ## Current Goal
-<user's answer to "what's the current goal">
+<confirmed goal>
 
 ## Where I Left Off
 _Not yet recorded. Run `/ck:save` after your first session._
@@ -185,7 +257,7 @@ _Not yet recorded. Run `/ck:save` after your first session._
 | _(none yet)_ | | |
 
 ## Do Not Do
-<user's answer to "any do-nots or constraints", or "None specified">
+<confirmed do-nots, or "None specified">
 ```
 
 ---
