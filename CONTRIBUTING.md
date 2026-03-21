@@ -38,7 +38,9 @@ claude
 /ck:init
 /ck:save
 /ck:resume
-/ck:status
+/ck:list
+/ck:info
+/ck:info <name or number>
 ```
 
 ## Areas That Need Help

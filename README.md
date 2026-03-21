@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](CHANGELOG.md)
 
 ---
 
@@ -24,10 +24,19 @@ ck gives Claude Code **persistent, per-project memory** that survives across ses
 ┌─────────────────────────────────────────────────────────┐
 │  RESUMING: my-saas-app                                  │
 │  Last session: 2 days ago  |  Sessions: 12             │
+│  → cd /Users/you/dev/my-saas-app  ✓                    │
 ├─────────────────────────────────────────────────────────┤
-│  GOAL     → Launch payment flow with Stripe             │
-│  LEFT OFF → Debugging webhook signature verification    │
-│  NEXT     → Test with Stripe CLI: stripe listen         │
+│  WHAT IT IS  → SaaS app with Stripe payments            │
+│  STACK       → Next.js, Neon, Clerk, Stripe             │
+│  PATH        → /Users/you/dev/my-saas-app               │
+│  REPO        → https://github.com/you/my-saas-app.git  │
+│  GOAL        → Launch payment flow with Stripe          │
+├─────────────────────────────────────────────────────────┤
+│  WHERE I LEFT OFF                                       │
+│    • Debugging webhook signature verification           │
+├─────────────────────────────────────────────────────────┤
+│  NEXT STEPS                                             │
+│    1. Test with Stripe CLI: stripe listen               │
 │  BLOCKERS → None                                        │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -48,11 +57,13 @@ That's it. One command. No dependencies beyond Node.js (already required by Clau
 
 | Command | What It Does |
 |---------|-------------|
-| `/ck:init` | Register current project — guided 4-question setup |
+| `/ck:init` | Register current project — auto-detects info, shows pre-filled draft to confirm |
 | `/ck:save` | Snapshot this session: goals, decisions, next steps, blockers, one-liner summary |
-| `/ck:resume` | Brief me on this project — what was I doing? |
-| `/ck:resume <name>` | Load **any** project's context from anywhere |
-| `/ck:status` | Portfolio view of all projects with staleness indicators |
+| `/ck:resume` | Full briefing on this project — what was I doing? |
+| `/ck:resume <name or #>` | Load **any** project's context by name or number from anywhere |
+| `/ck:info` | Quick read-only context snapshot — no questions, just display |
+| `/ck:info <name or #>` | Quick snapshot of any project by name or number |
+| `/ck:list` | Portfolio view of all projects with numbered rows |
 | `/ck:forget` | Remove a project's context |
 
 ---
@@ -63,7 +74,7 @@ That's it. One command. No dependencies beyond Node.js (already required by Clau
 ```
 /ck:init
 ```
-Claude asks 4 questions and sets everything up.
+Claude auto-detects your project info (stack, goal, repo) from existing files and shows a pre-filled draft. Confirm or edit — done in seconds.
 
 ### End of every session
 ```
@@ -77,25 +88,38 @@ Context auto-loads via the SessionStart hook. Or run:
 /ck:resume
 ```
 
+### Quick mid-session check
+```
+/ck:info
+```
+Read-only snapshot of where you are — no prompts, no questions. Also works from any directory:
+```
+/ck:info saas
+```
+
 ### Switching between projects
 ```
-/ck:status
+/ck:list
 ```
-See all projects at a glance from any terminal:
+See all projects at a glance with numbered rows:
 
 ```
-  PROJECT           LAST SEEN      STATUS    CURRENT GOAL               LAST SESSION
-  ─────────────────────────────────────────────────────────────────────────────────────────────
-  productivity   →  2 hours ago    ●         Build auth flow             Added Stripe webhooks  ← you are here
-  saas-starter   →  3 days ago     ◐         Payment integration         Fixed checkout bug
-  blog-redesign  →  8 days ago     ○         Redesign homepage           —
-  api-client     →  Today          ●         Fix rate limits             Debugged timeout issue
+  +---+------------------------+----------+-----------+-------------------------------------------------------+
+  | # | Project                | Status   | Last Seen | Last Session                                          |
+  +---+------------------------+----------+-----------+-------------------------------------------------------+
+  | 1 | clipboard-rewriter-pro | * Active | Today     | Created local/no-payments branch, stripped payments   |
+  | 2 | context-keeper         | * Active | Today     | Pushed all changes to GitHub, commit 287c720          |
+  | 3 | productivity           | o Warm   | 1 day ago | Built Context Keeper skill, needs publishing          |
+  | 4 | my-saas-app        <-  | o Warm   | 2 days ago| Debugging Stripe webhook signature verification       |
+  +---+------------------------+----------+-----------+-------------------------------------------------------+
 ```
 
-Then jump in:
+Reply with a number or name to jump straight in:
 ```
-/ck:resume saas-starter
+Resume which? (1 / 2 / 3 / 4 or name)
+> 2
 ```
+ck immediately runs the full `/ck:resume` briefing for that project.
 
 ---
 
@@ -112,15 +136,17 @@ Then jump in:
     └── contexts/
         └── <project-name>/
             ├── CONTEXT.md        ← Your living project context
-            └── meta.json         ← Metadata (path, dates, session count)
+            └── meta.json         ← Metadata (path, repo, dates, session count)
 ```
 
-**The SessionStart hook** fires every time you open Claude Code. If the current directory is a registered project, it silently injects your `CONTEXT.md` so Claude starts the session already knowing your project.
+**The SessionStart hook** fires every time you open Claude Code. If the current directory is a registered project, it silently injects your `CONTEXT.md` so Claude starts the session already knowing your project. If you're in an unregistered directory, it shows a mini portfolio of your 3 most recent projects.
 
 **The CONTEXT.md** is a structured, human-readable file that Claude reads and writes:
 
 ```markdown
 # Project: my-saas-app
+> Path: /Users/you/dev/my-saas-app
+> Repo: https://github.com/you/my-saas-app.git
 > Last Session: 2026-03-20 | Sessions: 12
 
 ## Current Goal
