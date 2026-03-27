@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ck — Context Keeper
+# ck — Context Keeper v2
 # Uninstaller: removes skill files and hook registration. Data is preserved by default.
 
 set -e
@@ -31,21 +31,22 @@ rm -rf "$CK_SKILL_HOME"
 # ── Remove hook from settings.json ───────────────────────────────────────────
 if [ -f "$SETTINGS_FILE" ]; then
   echo "→ Removing hook from settings.json..."
-  node - <<EOF
-const fs = require('fs');
-const settingsPath = '$SETTINGS_FILE';
+  UNINSTALL_SCRIPT=$(mktemp /tmp/ck-uninstall-XXXXXX.mjs)
+  cat > "$UNINSTALL_SCRIPT" << NODESCRIPT
+import { readFileSync, writeFileSync } from 'fs';
+const settingsPath = process.argv[2];
+const hookCmd = process.argv[3];
 let settings = {};
-try {
-  settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-} catch { process.exit(0); }
-
+try { settings = JSON.parse(readFileSync(settingsPath, 'utf8')); } catch { process.exit(0); }
 if (settings.hooks?.SessionStart) {
   settings.hooks.SessionStart = settings.hooks.SessionStart.filter(entry =>
-    !(Array.isArray(entry.hooks) && entry.hooks.some(h => h.command === '$HOOK_CMD'))
+    !(Array.isArray(entry.hooks) && entry.hooks.some(h => h.command === hookCmd))
   );
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 }
-EOF
+NODESCRIPT
+  node "$UNINSTALL_SCRIPT" "$SETTINGS_FILE" "$HOOK_CMD"
+  rm -f "$UNINSTALL_SCRIPT"
 fi
 
 # ── Optionally delete data ────────────────────────────────────────────────────

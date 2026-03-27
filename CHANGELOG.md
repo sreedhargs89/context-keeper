@@ -2,6 +2,36 @@
 
 All notable changes to ck — Context Keeper will be documented here.
 
+## [2.0.0] — 2026-03-27
+
+### Architecture — Breaking Change
+
+v2 replaces the prose-instruction model with deterministic Node.js scripts. Every `/ck:*` command now runs a script; Claude's only job is to pass data and display output. Behavior is consistent across model versions.
+
+### Added
+- `commands/` directory — 8 Node.js scripts handling all command logic (init, save, resume, info, list, forget, migrate, shared)
+- `context.json` as source of truth — structured JSON with full session history; CONTEXT.md is now a generated view
+- Session IDs — each save gets a unique 8-char hex ID for tracking
+- `/ck:migrate` — converts v1 CONTEXT.md + meta.json to v2 context.json; backs up originals; supports `--dry-run`
+- Git activity tracking — saves capture commits and files changed since last session
+- Native memory integration — each save writes a memory entry to `~/.claude/projects/*/memory/` for cross-session surfacing
+- Unsaved session detection — hook warns "Last session wasn't saved" when detected
+- Goal mismatch detection — hook warns when `context.json` goal diverges from `CLAUDE.md`
+- Session history — `context.json` retains all sessions; CONTEXT.md renders a `## Session History` section
+- `displayName` vs `contextDir` separation — display name preserves original casing/spacing
+- `current-session.json` — hook writes session ID on start for save deduplication
+
+### Changed
+- SessionStart hook now injects ~100 tokens (compact 5-line summary) instead of ~2,500 (full CONTEXT.md)
+- SKILL.md reduced from ~280 lines to ~50 — now just maps commands to script calls
+- `install.sh` detects v1 installs and prompts to run `/ck:migrate` after upgrade
+- `uninstall.sh` hook removal uses ESM (consistent with the rest of the codebase)
+- CONTEXT.md template removed — CONTEXT.md is now generated, not hand-edited
+
+### Removed
+- `templates/CONTEXT.md.template` — no longer needed
+- Prose-instruction command logic from SKILL.md
+
 ## [1.3.0] — 2026-03-27
 
 ### Fixed

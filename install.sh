@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ck — Context Keeper
-# Installer: sets up skill files, data directories, and registers the SessionStart hook.
+# ck — Context Keeper v2
+# Installer: deploys command scripts, hook, and registers the SessionStart hook.
 
 set -e
 
@@ -16,20 +16,34 @@ SETTINGS_FILE="$HOME/.claude/settings.json"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo ""
-echo -e "${BOLD}${CYAN}ck — Context Keeper${RESET}"
+echo -e "${BOLD}${CYAN}ck — Context Keeper v2${RESET}"
 echo -e "Never lose your place across Claude Code sessions."
 echo ""
 
+# ── Detect existing v1 install ───────────────────────────────────────────────
+V1_DETECTED=false
+if [ -f "$CK_SKILL_HOME/SKILL.md" ] && [ ! -d "$CK_SKILL_HOME/commands" ]; then
+  V1_DETECTED=true
+  echo -e "${YELLOW}→ Existing v1 install detected. Upgrading to v2...${RESET}"
+fi
+
 # ── 1. Create directories ────────────────────────────────────────────────────
 echo "→ Creating directories..."
+mkdir -p "$CK_SKILL_HOME/commands"
 mkdir -p "$CK_SKILL_HOME/hooks"
 mkdir -p "$CK_DATA_HOME/contexts"
 
-# ── 2. Copy skill files ──────────────────────────────────────────────────────
-echo "→ Installing skill files..."
-cp "$SCRIPT_DIR/SKILL.md" "$CK_SKILL_HOME/SKILL.md"
+# ── 2. Copy skill and command files ──────────────────────────────────────────
+echo "→ Installing command scripts..."
+cp "$SCRIPT_DIR/commands/"*.mjs "$CK_SKILL_HOME/commands/"
+chmod +x "$CK_SKILL_HOME/commands/"*.mjs
+
+echo "→ Installing hook..."
 cp "$SCRIPT_DIR/hooks/session-start.mjs" "$CK_SKILL_HOME/hooks/session-start.mjs"
-cp "$SCRIPT_DIR/templates/CONTEXT.md.template" "$CK_DATA_HOME/CONTEXT.md.template"
+chmod +x "$CK_SKILL_HOME/hooks/session-start.mjs"
+
+echo "→ Installing skill instructions..."
+cp "$SCRIPT_DIR/SKILL.md" "$CK_SKILL_HOME/SKILL.md"
 
 # ── 3. Initialize projects registry ─────────────────────────────────────────
 if [ ! -f "$CK_DATA_HOME/projects.json" ]; then
@@ -40,8 +54,8 @@ fi
 # ── 4. Register SessionStart hook in settings.json ───────────────────────────
 echo "→ Registering SessionStart hook..."
 
-# Write a temporary Node script to safely merge hook into settings.json
 HOOK_REGISTER_SCRIPT=$(mktemp /tmp/ck-install-XXXXXX.mjs)
+HOOK_CMD="node \"$CK_SKILL_HOME/hooks/session-start.mjs\""
 
 cat > "$HOOK_REGISTER_SCRIPT" << NODESCRIPT
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -77,20 +91,28 @@ if (!alreadyRegistered) {
 }
 NODESCRIPT
 
-HOOK_CMD="node \"$CK_SKILL_HOME/hooks/session-start.mjs\""
 node "$HOOK_REGISTER_SCRIPT" "$SETTINGS_FILE" "$HOOK_CMD"
 rm -f "$HOOK_REGISTER_SCRIPT"
 
-# ── 5. Done ──────────────────────────────────────────────────────────────────
+# ── 5. Offer migration for existing v1 data ──────────────────────────────────
+if [ "$V1_DETECTED" = true ]; then
+  echo ""
+  echo -e "${YELLOW}→ You have v1 project data (CONTEXT.md + meta.json).${RESET}"
+  echo -e "  Run ${CYAN}/ck:migrate${RESET} in Claude Code to convert it to v2 format."
+  echo -e "  Your data is safe — migration backs up originals before converting."
+fi
+
+# ── 6. Done ──────────────────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}${BOLD}✓ ck installed successfully!${RESET}"
+echo -e "${GREEN}${BOLD}✓ ck v2 installed successfully!${RESET}"
 echo ""
 echo -e "  ${BOLD}Get started:${RESET}"
 echo -e "  1. Open Claude Code in any project folder"
 echo -e "  2. Run ${CYAN}/ck:init${RESET} to register the project"
 echo -e "  3. Run ${CYAN}/ck:save${RESET} at the end of each session"
 echo -e "  4. Run ${CYAN}/ck:resume${RESET} next time to pick up where you left off"
-echo -e "  5. Run ${CYAN}/ck:list${RESET} from anywhere to see all your projects"
+echo -e "  5. Run ${CYAN}/ck:list${RESET} to see all your projects"
 echo ""
+echo -e "  ${BOLD}Upgrading from v1?${RESET} Run ${CYAN}/ck:migrate${RESET} to convert existing data."
 echo -e "  ${BOLD}Docs:${RESET} https://github.com/sreedhargs89/context-keeper"
 echo ""
