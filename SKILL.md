@@ -56,6 +56,7 @@ Always expand `~` using `$HOME` (run `echo $HOME` via Bash if needed).
       "path": "<absolute-path>",
       "name": "<contextDir>",
       "repo": "<repo URL>",
+      "goal": "<current goal, one line>",
       "lastUpdated": "<YYYY-MM-DD>",
       "sessionCount": 1
     }
@@ -90,7 +91,7 @@ Always expand `~` using `$HOME` (run `echo $HOME` via Bash if needed).
 6. Generate a one-liner session summary (max 10 words). Show: "Session summary: '<one-liner>' — keep this or edit it?" Wait for response. If user skips, use the auto-generated one.
 7. Show a draft of what will change in CONTEXT.md. Ask: "Save this? (yes / edit)"
 8. If yes: update CONTEXT.md — merge, never erase history. Append to decisions table, update next steps and "Where I Left Off".
-9. Update `meta.json`: set `lastUpdated` to today, increment `sessionCount`, set `lastSessionSummary`.
+9. Update `meta.json`: set `lastUpdated` to today, increment `sessionCount`, set `lastSessionSummary`, update `goal` to the current value of `## Current Goal` in CONTEXT.md.
 10. Confirm: "✓ Saved. See you next time."
 
 ---
@@ -187,10 +188,10 @@ Show all bullets and steps — never truncate. No follow-up question.
 
 ### `/ck:list` — Portfolio View
 
-**Speed rule**: collect all data in ONE Bash call:
+**Speed rule**: collect all data in ONE Bash call (goal is stored in meta.json — no CONTEXT.md read needed):
 ```bash
 CK="$HOME/.claude/ck"; pwd; date +%Y-%m-%d; cat "$CK/projects.json"; echo "==="; \
-  for d in "$CK/contexts"/*/; do echo "---${d}"; cat "${d}meta.json"; echo "^^^"; grep -m1 -A1 "## Current Goal" "${d}CONTEXT.md"; done
+  for d in "$CK/contexts"/*/; do echo "---${d}"; cat "${d}meta.json"; echo "^^^"; done
 ```
 Parse everything from that single output. No separate Read/Grep calls.
 
@@ -220,8 +221,6 @@ Parse everything from that single output. No separate Read/Grep calls.
 
 6. End with: "Resume which? (1 / 2 / 3 / 4 or name)"
 7. If the user replies with a number or name → immediately execute the full `/ck:resume` flow for that project. If reply is clearly unrelated, do nothing.
-
----
 
 ---
 
@@ -260,13 +259,12 @@ _Not yet recorded. Run `/ck:save` after your first session._
 ## Blockers
 - None
 
-## Decisions Made
-| Decision | Why | Date |
-|----------|-----|------|
-| _(none yet)_ | | |
-
 ## Do Not Do
 <constraints, or "None specified">
+
+<!-- Optional: add a ## Decisions Made table if tracking key decisions is useful for this project -->
+<!-- | Decision | Why | Date | -->
+<!-- |----------|-----|------| -->
 ```
 
 ---

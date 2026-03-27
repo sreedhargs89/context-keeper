@@ -4,7 +4,7 @@
  * SessionStart hook: auto-injects project context + displays a welcome briefing.
  *
  * - In a registered project: shows a formatted welcome briefing as Claude's first message
- * - Outside a registered project: shows a mini ck:status of recent projects
+ * - Outside a registered project: shows a mini summary of 3 most recent projects
  *
  * Output format: JSON with `additionalContext` key (Claude Code hook protocol).
  */
@@ -15,12 +15,6 @@ import { homedir } from 'os';
 
 const CK_HOME = resolve(homedir(), '.claude', 'ck');
 const PROJECTS_FILE = resolve(CK_HOME, 'projects.json');
-const SKILL_FILE = resolve(homedir(), '.claude', 'skills', 'ck', 'SKILL.md');
-
-function loadSkill() {
-  if (existsSync(SKILL_FILE)) return readFileSync(SKILL_FILE, 'utf8');
-  return '';
-}
 
 function loadProjects() {
   if (!existsSync(PROJECTS_FILE)) return {};
@@ -28,6 +22,15 @@ function loadProjects() {
   catch { return {}; }
 }
 
+/** Read only meta.json — used by mini-status to avoid loading full CONTEXT.md per project */
+function loadMeta(contextDir) {
+  const metaFile = resolve(CK_HOME, 'contexts', contextDir, 'meta.json');
+  if (!existsSync(metaFile)) return null;
+  try { return JSON.parse(readFileSync(metaFile, 'utf8')); }
+  catch { return null; }
+}
+
+/** Read both CONTEXT.md and meta.json — used only for the registered-project briefing */
 function loadContext(contextDir) {
   const contextFile = resolve(CK_HOME, 'contexts', contextDir, 'CONTEXT.md');
   const metaFile = resolve(CK_HOME, 'contexts', contextDir, 'meta.json');
@@ -91,7 +94,10 @@ function buildBriefing(name, context, meta) {
   ].join('\n');
 }
 
-/** Build a mini status table for when NOT in a registered project */
+/**
+ * Build a mini summary for when NOT in a registered project.
+ * Reads only meta.json per project — no CONTEXT.md loading.
+ */
 function buildMiniStatus(projects) {
   const entries = Object.entries(projects);
   if (entries.length === 0) return null;
@@ -99,16 +105,12 @@ function buildMiniStatus(projects) {
   // Sort by lastUpdated desc, take top 3
   const sorted = entries
     .map(([path, info]) => {
-      const result = loadContext(info.contextDir);
-      const meta = result?.meta ?? {};
-      const context = result?.context ?? '';
+      const meta = loadMeta(info.contextDir) ?? {};
       return {
         name: info.name,
         path,
         lastUpdated: meta.lastUpdated ?? '',
-        sessions: meta.sessionCount ?? '?',
         lastSummary: meta.lastSessionSummary ?? '—',
-        goal: extractSection(context, 'Current Goal') ?? '—',
       };
     })
     .sort((a, b) => (b.lastUpdated > a.lastUpdated ? 1 : -1))
@@ -129,23 +131,19 @@ function buildMiniStatus(projects) {
     `  ${'─'.repeat(70)}`,
     ...rows,
     ``,
-    `Run /ck:status for full view · /ck:resume <name> to jump in · /ck:init to register this folder`,
+    `Run /ck:list for full view · /ck:resume <name> to jump in · /ck:init to register this folder`,
   ].join('\n');
 }
 
 function main() {
   const cwd = process.env.PWD || process.cwd();
-  const skill = loadSkill();
   const projects = loadProjects();
   const entry = projects[cwd];
 
   const parts = [];
 
-  // Always inject skill instructions
-  if (skill) parts.push(skill);
-
   if (entry?.contextDir) {
-    // ── REGISTERED PROJECT: inject context + welcome briefing ──
+    // ── REGISTERED PROJECT: inject CONTEXT.md + welcome briefing ──
     const result = loadContext(entry.contextDir);
     if (result) {
       const { context, meta } = result;
@@ -171,7 +169,7 @@ function main() {
       ].join('\n'));
     }
   } else {
-    // ── NOT IN A REGISTERED PROJECT: show mini ck:status ──
+    // ── UNREGISTERED DIRECTORY: show mini summary of recent projects ──
     const miniStatus = buildMiniStatus(projects);
     if (miniStatus) {
       parts.push([

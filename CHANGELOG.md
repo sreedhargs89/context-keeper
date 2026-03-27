@@ -2,6 +2,19 @@
 
 All notable changes to ck — Context Keeper will be documented here.
 
+## [1.3.0] — 2026-03-27
+
+### Fixed
+- `SessionStart` hook no longer injects `SKILL.md` on every session start — eliminates ~12KB of unnecessary token cost per session on sessions where no `/ck:*` commands are used
+- `buildMiniStatus` (shown in unregistered directories) now reads only `meta.json` per project instead of loading the full `CONTEXT.md` — eliminates O(n) file reads on session start
+- Mini-status footer referenced `/ck:status` (removed in v1.2.0) — corrected to `/ck:list`
+
+### Changed
+- `meta.json` schema now includes a `goal` field — set on `/ck:init`, updated on `/ck:save` — so the `/ck:list` Bash command no longer needs to grep CONTEXT.md
+- `/ck:list` Bash command simplified to read only `meta.json` per context dir (faster, cleaner)
+- `Decisions Made` table removed from default CONTEXT.md template — now optional (add it only if you want to track decisions; SKILL.md still supports it when present)
+- README: fixed `/ck:list` example showing broken ASCII approximations (`*`, `o`, `<-`) — now shows actual characters (`●`, `◐`, `←`)
+
 ## [1.2.0] — 2026-03-21
 
 ### Added

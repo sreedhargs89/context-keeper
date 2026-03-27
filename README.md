@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude-Code-blueviolet)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue)](CHANGELOG.md)
 
 ---
 
@@ -107,10 +107,10 @@ See all projects at a glance with numbered rows:
   +---+------------------------+----------+-----------+-------------------------------------------------------+
   | # | Project                | Status   | Last Seen | Last Session                                          |
   +---+------------------------+----------+-----------+-------------------------------------------------------+
-  | 1 | clipboard-rewriter-pro | * Active | Today     | Created local/no-payments branch, stripped payments   |
-  | 2 | context-keeper         | * Active | Today     | Pushed all changes to GitHub, commit 287c720          |
-  | 3 | productivity           | o Warm   | 1 day ago | Built Context Keeper skill, needs publishing          |
-  | 4 | my-saas-app        <-  | o Warm   | 2 days ago| Debugging Stripe webhook signature verification       |
+  | 1 | clipboard-rewriter-pro | ● Active | Today     | Created local/no-payments branch, stripped payments   |
+  | 2 | context-keeper         | ● Active | Today     | Pushed all changes to GitHub, commit 287c720          |
+  | 3 | productivity           | ◐ Warm   | 1 day ago | Built Context Keeper skill, needs publishing          |
+  | 4 | my-saas-app        ←   | ◐ Warm   | 2 days ago| Debugging Stripe webhook signature verification       |
   +---+------------------------+----------+-----------+-------------------------------------------------------+
 ```
 
@@ -139,7 +139,7 @@ ck immediately runs the full `/ck:resume` briefing for that project.
             └── meta.json         ← Metadata (path, repo, dates, session count)
 ```
 
-**The SessionStart hook** fires every time you open Claude Code. If the current directory is a registered project, it silently injects your `CONTEXT.md` so Claude starts the session already knowing your project. If you're in an unregistered directory, it shows a mini portfolio of your 3 most recent projects.
+**The SessionStart hook** fires every time you open Claude Code. If the current directory is a registered project, it injects your `CONTEXT.md` so Claude starts the session already knowing your project. If you're in an unregistered directory, it shows your 3 most recent projects as a quick reference.
 
 **The CONTEXT.md** is a structured, human-readable file that Claude reads and writes:
 
@@ -159,12 +159,6 @@ Debugging webhook signature verification in app/api/webhooks/stripe/route.ts
 1. Test with Stripe CLI: stripe listen --forward-to localhost:3000/api/webhooks/stripe
 2. Handle subscription.updated event
 3. Update user plan in database on successful payment
-
-## Decisions Made
-| Decision | Why | Date |
-|----------|-----|------|
-| Stripe over Paddle | Already in Vercel Marketplace | 2026-03-18 |
-| Webhooks over polling | Real-time + Stripe recommends it | 2026-03-19 |
 
 ## Do Not Do
 - Don't use Stripe.js for server-side operations
